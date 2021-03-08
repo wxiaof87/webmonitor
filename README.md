@@ -1,5 +1,6 @@
 # init database
 user@server$ sqlite3 test.db 
+
 sqlite> .read tables.sql
 
 # set parameters
