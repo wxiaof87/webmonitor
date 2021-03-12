@@ -87,7 +87,8 @@ class WebMonitorJob(Job):
         self.params = self.url
         self.differ = difflib.Differ()
         self.html = ""
-
+        self.emailClient = util.EmailClient()
+        self.userid = None # TODO
 
     def diff(self, oldHtml, newHtml):
         # result = self.differ.compare(oldHtml.splitlines(), newHtml.splitlines())
@@ -110,7 +111,7 @@ class WebMonitorJob(Job):
             diff = self.diff(self.html, html)
             if len(diff) > 0:
                 self.logger.info("change found:\n" + diff)
-                util.notify('updated ' + self.url, diff)
+                self.emailClient.send(self.userid, 'updated ' + self.url, diff)
             else:
                 self.logger.info("Nothing change")
             self.html = html
