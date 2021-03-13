@@ -14,7 +14,7 @@ class EmailClient:
     def send(self, recipient, subject, content):
         self.logger.info('sending email to {}'.format(recipient))
         self.logger.info('subject: {}'.format(subject))
-        self.logger.info('content: {}'.format(content))
+        self.logger.debug('content: {}'.format(content))
 
         if self.isTest:
             self.logger.info('email sent (test!)')

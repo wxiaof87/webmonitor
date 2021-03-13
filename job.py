@@ -9,10 +9,6 @@ import util
 
 
 class Job:
-    # def __init__(self, interval, delay_start=True):
-    #    self.jobid = str(int(1000*time.time())) + "_" + str(random.randint(1000, 2000-1))
-    #    self.__init__(jobid, interval, delay_start)
-
     def __init__(self, interval, jobid=None, delay_start=True):
         if jobid is None:
             self.jobid = str(int(1000*time.time())) + "_" + str(random.randint(1000, 2000-1))
@@ -106,13 +102,12 @@ class WebMonitorJob(Job):
         }
         req = urllib.request.Request(self.url, data=None, headers=headers)
         with urllib.request.urlopen(req) as response:
-            response = urllib.request.urlopen(req)
+            # response = urllib.request.urlopen(req)
             html = response.read().decode()
             diff = self.diff(self.html, html)
             if len(diff) > 0:
-                self.logger.info("change found:\n" + diff)
+                self.logger.debug("change found:\n" + diff)
                 self.emailClient.send(self.userid, 'updated ' + self.url, diff)
             else:
                 self.logger.info("Nothing change")
             self.html = html
-

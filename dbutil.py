@@ -81,19 +81,3 @@ class Database:
         cur.executescript(queries)
 
 
-def test():
-    db = Database('test.db')
-    db.init()
-    db.insertUser('1', '123456', 'testuser@gmail.com')
-    db.insertJob('1', '1', 10, 'http://localhost:8081')
-    db.insertJob('2', '1', 100, 'http://localhost:8081')
-    db.removeJob('2')
-    logging.info('jobs for one user: {}'.format(db.queryJobsForUser('1')))
-    logging.info('jobs for all users: {}'.format(db.getAllJobs()))
-
-    # TODO: purge data after tests
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s: %(message)s')
-    test()

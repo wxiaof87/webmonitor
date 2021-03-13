@@ -10,6 +10,7 @@ import traceback
 import dbutil
 from job import WebMonitorJob
 from job import RepeatJob
+from job import Job
 
 class Scheduler(Thread):
     def __init__(self):
@@ -50,6 +51,13 @@ class Scheduler(Thread):
         while True:
             self.reportStatus()
             job = self.waitQueue.get()  # block
+
+            # exit job
+            if job.jobid == '-1':
+                self.logger.info("========exit job encountered. exit now!========")
+                self.executor.shutdown()
+                return
+
             if job.jobid in self.removedJobs:
                 self.removedJobs.remove(job.jobid)
                 self.logger.info('jobid {} is removed!'.format(job.jobid))
@@ -61,6 +69,7 @@ class Scheduler(Thread):
                     self.scheduleJob(job)
             else:
                 self.scheduleJob(job)
+                self.logger.info("current job {} is not ready. sleep for a while".format(job.jobid))
                 time.sleep(1)
 
     def scheduleJob(self, job):
@@ -71,6 +80,7 @@ class Scheduler(Thread):
     def addJob(self, job):
         self.scheduleJob(job)
         self.db.insertJob(job.jobid, job.userid, job.interval, job.params)
+        return job.jobid
 
     def removeJob(self, jobid):
         self.removedJobs.add(jobid)
@@ -80,15 +90,6 @@ class Scheduler(Thread):
         # read config file and update jobs
         pass
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s: %(message)s')
-    logging.info('start')
-    scheduler1 = Scheduler()
-    scheduler1.addJob(WebMonitorJob('http://192.168.0.101', 3))
-    scheduler1.addJob(WebMonitorJob('http://192.168.0.101?a=1', 5))
-    scheduler1.addJob(WebMonitorJob('http://192.168.0.101?b=2', 7))
-    scheduler1.start()
-    scheduler1.join()
-    logging.info('exit')
-
-
+    def stop(self):
+        exitJob = Job(1, '-1')
+        self.scheduleJob(exitJob)

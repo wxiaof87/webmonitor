@@ -6,7 +6,8 @@ CREATE TABLE users(
     password varchar(64),
     email varchar(64),
     first_name varchar(32),
-    last_name varchar(32)
+    last_name varchar(32),
+    PRIMARY KEY (userid)
 );
 
 DROP TABLE IF EXISTS jobs;
@@ -18,5 +19,7 @@ CREATE TABLE jobs(
     start_time int,
     end_time int,
     max_num int,
-    params varchar(1024)
+    params varchar(1024),
+    PRIMARY KEY (jobid),
+    CONSTRAINT FK_JOB_USER FOREIGN KEY (userid) REFERENCES users(userid)
 );
