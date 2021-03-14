@@ -20,9 +20,10 @@ class DatabaseTest(unittest.TestCase):
         db = Database('tmp.db')
         db.init()
         db.insertUser('1', '123456', 'testuser@gmail.com')
-        db.insertJob('1', '1', 10, 'http://localhost:8081')
-        db.insertJob('2', '1', 100, 'http://localhost:8081')
+        db.insertJob('1', '1', 'usr1@gmail.com', 10, 'http://localhost:8081')
+        db.insertJob('2', '1', 'usr1@gmail.com', 100, 'http://localhost:8081')
         logging.info('jobs for one user: {}'.format(db.queryJobsForUser('1')))
+        logging.info('jobs for one email: {}'.format(db.queryJobsForEmail('usr1@gmail.com')))
         logging.info('jobs for all users: {}'.format(db.getAllJobs()))
 
         # TODO: purge data after tests

@@ -4,23 +4,21 @@ import sys
 import scheduler
 from job import WebMonitorJob
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
+import urllib.parse
 
 
 # TODO: add path handler, add request parameters parser, add html template
-
 class EndPoints:
     ADD_JOB = '/addjob'
     REMOVE_JOB = '/removejob'
     QUERY_JOB = '/queryjob'
 
 
-# this request handler return all request parameters and headers
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     _scheduler = scheduler.Scheduler()
 
     def do_GET(self):
         # path include request parameters, e.g. /index.html?p1=1&p2=2
-        # response = "Path: " + str(self.path) + "\n" + str(self.headers)  # echo path and headers
         logging.info('path: ' + self.path)
         path = self.path
 
@@ -28,19 +26,25 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         # qs = dict([qs.split('=') for qs in path[path.index('?')+1:].split('&')])
         # TODO: add change job interval
         # TODO: use a map to handle endpoint to handler
-        content_type = 'application/json'
+        contentType = 'application/json'  # default content type: json
         # TODO: have a nicer method to parse parameters
-        # http://127.0.0.1:8000/addjob?interval=10&url=http://192.168.0.101?a=101
+        # e.g. http://127.0.0.1:8000/addjob?interval=10&url=http://192.168.0.101?a=101
         if path.startswith(EndPoints.ADD_JOB):
             # TODO: add try-catch to handle illegal params
             idxForIntervalStart = len(EndPoints.ADD_JOB) + len('?interval=')
             idxForIntervalEnd = path.find('&', idxForIntervalStart)
             interval = float(path[idxForIntervalStart: idxForIntervalEnd])
-            idxForUrlStart = idxForIntervalEnd + len('&url=')
-            url = path[idxForUrlStart:]
-            response = self.addJob(interval, url)
 
-        # http://127.0.0.1:8000/removejob?jobid=1615164987341_1276
+            idxForEmailStart = idxForIntervalEnd + len('&email=')
+            idxForEmailEnd = path.find('&', idxForEmailStart)
+            email = urllib.parse.unquote(path[idxForEmailStart:idxForEmailEnd])
+
+            idxForUrlStart = idxForEmailEnd + len('&url=')
+            urlEncoded = path[idxForUrlStart:]
+            url = urllib.parse.unquote(urlEncoded)
+            response = self.addJob(interval, url, email)
+
+        # e.g. http://127.0.0.1:8000/removejob?jobid=1615164987341_1276
         elif path.startswith(EndPoints.REMOVE_JOB):
             idxStart = len(EndPoints.REMOVE_JOB) + len('?jobid=')
             idxEnd = path.find('&', idxStart)
@@ -50,37 +54,45 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             jobid = path[idxStart:idxEnd]
             response = self.removeJob(jobid)
 
-        # http://127.0.0.1:8000/queryjob?userid=1
+        # e.g. http://127.0.0.1:8000/queryjob?userid=1
         elif path.startswith(EndPoints.QUERY_JOB):
-            idxStart = len(EndPoints.QUERY_JOB) + len('?userid=')
+            idxStart = len(EndPoints.QUERY_JOB) + len('?email=')
             idxEnd = path.find('&', idxStart)
             if idxEnd < 0:
                 idxEnd = len(path)
             logging.info('idxStart: {}, idxEnd: {}'.format(idxStart, idxEnd))
-            userid = path[idxStart:idxEnd]
-            response = self.queryJob(userid)
+            email = path[idxStart:idxEnd]
+            response = self.queryJob(email)
+        # regular html file, e.g. http://127.0.0.1:8000/index.html
         else:
-            # response = 'ERROR: NOT IMPLEMENTED!'
-            response = self.getHomepage()
-            content_type = 'text/html; charset=utf-8'
+            contentType = 'text/html; charset=utf-8'  # overwrite content type
+            fileName = ""
+            if path == "/":
+                fileName = "index.html"
+            elif path.endswith('.html'):
+                fileName = path[1:]  # '/xxx.html', skip '/'
+            if len(fileName) > 0:
+                response = self.getHtmlFromFile(fileName)  # index.html
+            else:
+                response = 'ERROR: NOT IMPLEMENTED!'
 
+        self.sendResponse(response, contentType)
+
+    def sendResponse(self, response, contentType):
         self.send_response(200)
-        self.send_header('Content-Type', content_type)
-        # self.send_header('Content-Type', 'text/plain; charset=utf-8')
-        # self.send_header('Content-Type', 'text/html; charset=utf-8')
-        # self.send_header('Content-Type', 'application/json')
-
+        self.send_header('Content-Type', contentType)
         self.end_headers()
         self.wfile.write(response.encode('utf-8'))
 
-    def getHomepage(self):
-        with open('index.html') as f:
+    def getHtmlFromFile(self, fileName):
+        # TODO: add memory cache here
+        with open(fileName) as f:
             html = f.read()
             return html
 
-    def addJob(self, interval, url):
-        logging.info('adding job. interval: {}, url: {}'.format(interval, url))
-        job = WebMonitorJob(url, interval)
+    def addJob(self, interval, url, email):
+        logging.info('adding job. interval: {}, url: {}, email'.format(interval, url, email))
+        job = WebMonitorJob(url, interval, email=email)
         MyHTTPRequestHandler._scheduler.addJob(job)
         return json.dumps({'jobid': job.jobid})
 
@@ -90,10 +102,10 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         MyHTTPRequestHandler._scheduler.removeJob(jobid)
         return json.dumps({'success': True})
 
-    def queryJob(self, userid):
-        logging.info('query job for userid {}'.format(userid))
+    def queryJob(self, email):
+        logging.info('query job for email {}'.format(email))
         # TODO: change this
-        jobs = MyHTTPRequestHandler._scheduler.db.queryJobsForUser(userid)
+        jobs = MyHTTPRequestHandler._scheduler.db.queryJobsForEmail(email)
         return json.dumps(jobs)
 
     def getEndpoint(self, path):
@@ -102,8 +114,6 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s: %(message)s')
-    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s: %(message)s')
-    # handler_class = SimpleHTTPRequestHandler
     MyHTTPRequestHandler._scheduler.start()
 
     handler_class = MyHTTPRequestHandler

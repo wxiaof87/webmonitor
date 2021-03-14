@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS jobs;
 CREATE TABLE jobs(
     jobid varchar(32),
     userid varchar(16),
+    email varchar(64),
     job_type varchar(16),
     interval int,
     start_time int,

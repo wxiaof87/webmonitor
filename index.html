@@ -1,27 +1,69 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Web Monitor Job</title>
+</head>
 <body>
 
+<div align="center">
+    <h2>Add Job</h2>
 
-<h2>Add Job</h2>
-<form action="/addjob" method="get">
-  Interval <input type="text" name="interval"><br>
-  URL <input type="text" name="url"><br>
-  <input type="submit" value="Submit">
-</form>
+    <form action="/addjob" method="get">
+        <table>
+            <tr>
+                <td>Interval</td>
+                <td><input type="text" name="interval"></td>
+            </tr>
 
-<h2>Delete Job</h2>
-<form action="/removejob" method="get">
-  Job Id <input type="text" name="jobid"><br>
-  <input type="submit" value="Submit">
-</form>
+            <tr>
+                <td>Email Address</td>
+                <td><input type="text" name="email"></td>
+            </tr>
+
+            <tr>
+                <td>URL</td>
+                <td><input type="text" name="url"></td>
+            </tr>
+
+            <tr>
+                <td><input type="submit" value="Submit"></td>
+            </tr>
+
+        </table>
+    </form>
 
 
-<h2>Query Job</h2>
-<form action="/queryjob" method="get">
-  User Id <input type="text" name="userid" value="1"><br>
-  <input type="submit" value="Submit">
-</form>
+    <h2>Query Job</h2>
+    <form action="/queryjob" method="get">
+        <table>
+            <tr>
+                <td>Email Address</td>
+                <td><input type="text" name="email"></td>
+            </tr>
+            <tr>
+                <td><input type="submit" value="Submit"></td>
+            </tr>
+
+        </table>
+    </form>
+
+
+    <h2>Delete Job</h2>
+    <form action="/removejob" method="get">
+        <table>
+            <tr>
+                <td>Job Id</td>
+                <td><input type="text" name="jobid"></td>
+            </tr>
+            <tr>
+                <td><input type="submit" value="Submit"></td>
+            </tr>
+
+        </table>
+    </form>
+
+
+</div>
 
 </body>
 </html>

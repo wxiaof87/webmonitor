@@ -1,16 +1,14 @@
+import threading
+import time
+import logging
+import dbutil
 from queue import PriorityQueue
 from concurrent.futures import ThreadPoolExecutor
-import threading
 from threading import Thread
-from threading import Lock
-import time
-import random
-import logging
-import traceback
-import dbutil
 from job import WebMonitorJob
 from job import RepeatJob
 from job import Job
+
 
 class Scheduler(Thread):
     def __init__(self):
@@ -24,17 +22,19 @@ class Scheduler(Thread):
         self.scheduleAllJobsFromDB()
 
     def scheduleAllJobsFromDB(self):
+        self.logger.info("scheduling all jobs from database")
         jsonJobs = self.db.getAllJobs()
         for curJsonJob in jsonJobs:
-            url = curJsonJob['params']
+            # url = curJsonJob['params']
             interval = float(curJsonJob['interval'])
             jobid = curJsonJob['jobid']
+            email = curJsonJob['email']
             params = curJsonJob['params']
-            job_type = 'WebMonitorJob' # TODO: curJsonJob['job_type']
+            job_type = 'WebMonitorJob'  # TODO: curJsonJob['job_type']
             if job_type == 'WebMonitorJob':
                 url = params
                 if url is not None and url.startswith('http'):
-                    job = WebMonitorJob(url, interval, jobid)
+                    job = WebMonitorJob(url, interval, jobid=jobid, email=email)
                     self.scheduleJob(job)
                 else:
                     self.logger.warning('skip one WebMonitorJob, because invalid url: {}'.format(url))
@@ -62,6 +62,7 @@ class Scheduler(Thread):
                 self.removedJobs.remove(job.jobid)
                 self.logger.info('jobid {} is removed!'.format(job.jobid))
                 continue
+            # TODO: which is the better way to handle this ?
             # job.waitTillReady()
             if job.isReady():
                 self.executor.submit(job.execute)
@@ -70,7 +71,7 @@ class Scheduler(Thread):
             else:
                 self.scheduleJob(job)
                 self.logger.info("current job {} is not ready. sleep for a while".format(job.jobid))
-                time.sleep(1)
+                time.sleep(3)
 
     def scheduleJob(self, job):
         self.logger.info('schedule one job: {} at {}'.format(job.params, job.getExecTime()))
@@ -79,7 +80,7 @@ class Scheduler(Thread):
     # create a new job: schedule job and put into db
     def addJob(self, job):
         self.scheduleJob(job)
-        self.db.insertJob(job.jobid, job.userid, job.interval, job.params)
+        self.db.insertJob(job.jobid, job.userid, job.email, job.interval, job.params)
         return job.jobid
 
     def removeJob(self, jobid):

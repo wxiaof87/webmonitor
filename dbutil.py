@@ -25,22 +25,27 @@ class Database:
                     ('{}', '{}', '{}')""".format(userid, password, email)
         self.execute(query)
 
-    def insertJob(self, jobid, userid, interval, url):
+    def insertJob(self, jobid, userid, email, interval, url):
         job_type = 'WebMonitorJob'  # TODO: fix this!
         params = url
         query = """INSERT INTO jobs
-                    (jobid, userid, job_type, interval, params) 
+                    (jobid, userid, email, job_type, interval, params) 
                     VALUES 
-                    ('{}', '{}', '{}', {}, '{}')""".format(jobid, userid, job_type, interval, params)
+                    ('{}', '{}', '{}', '{}', {}, '{}')""".format(jobid, userid, email, job_type, interval, params)
         self.execute(query)
 
     def queryJobsForUser(self, userid):
-        query = """SELECT jobid, interval, params FROM jobs WHERE userid = '{}'""".format(userid)
+        query = """SELECT jobid, interval, email, params FROM jobs WHERE userid = '{}'""".format(userid)
+        rows = self.executeSelectQuery(query)
+        return self.rowsToJobs(rows)
+
+    def queryJobsForEmail(self, email):
+        query = """SELECT jobid, interval, email, params FROM jobs WHERE email = '{}'""".format(email)
         rows = self.executeSelectQuery(query)
         return self.rowsToJobs(rows)
 
     def getAllJobs(self):
-        query = """SELECT jobid, interval, params FROM jobs"""
+        query = """SELECT jobid, interval, email, params FROM jobs"""
         rows = self.executeSelectQuery(query)
         return self.rowsToJobs(rows)
 
@@ -57,7 +62,8 @@ class Database:
         for row in rows:
             curJob = {'jobid': row[0],
                       'interval': row[1],
-                      'params': row[2]
+                      'email': row[2],
+                      'params': row[3]
                     }
 
             allJobs.append(curJob)
@@ -66,6 +72,7 @@ class Database:
     def removeJob(self, jobid):
         query = """DELETE FROM jobs WHERE jobid = '{}'""".format(jobid)
         self.execute(query)
+
     # TODO: check user and job relation before create/update/delete a job
     # TODO: add delete user and all its jobs
     def deleteUser(self, userid):

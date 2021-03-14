@@ -1,4 +1,3 @@
-from threading import Lock
 import time
 import random
 import logging
@@ -6,17 +5,20 @@ import traceback
 import difflib
 import urllib.request
 import util
+from threading import Lock
 
 
 class Job:
-    def __init__(self, interval, jobid=None, delay_start=True):
+    def __init__(self, interval, jobid=None, delay_start=True, userid=1, params=None, email=None):
+        # create job id for new job. use existing job id for existing job
         if jobid is None:
             self.jobid = str(int(1000*time.time())) + "_" + str(random.randint(1000, 2000-1))
         else:
             self.jobid = jobid
 
-        self.userid = 1  # TODO: fix this
-        self.params = None  # job specific params. e.g. URL
+        self.userid = userid
+        self.email = email
+        self.params = params  # job specific params. e.g. URL
         self.interval = interval
         self.execTime = time.time()
         if delay_start:
@@ -37,7 +39,7 @@ class Job:
             try:
                 self.run()
             except Exception as e:
-                self.logger.error("job execution error:\n" + traceback.format_exc())
+                self.logger.error("job {} execution error:\n".format(job.jobid) + traceback.format_exc())
             self.numExecuted += 1
             self.logger.info('job done: ' + self.jobid + '. this job has been executed ' + str(self.numExecuted) + ' number of times')
 
@@ -77,37 +79,40 @@ class RepeatJob(Job):
 
 
 class WebMonitorJob(Job):
-    def __init__(self, url, interval, jobid=None):
-        Job.__init__(self, interval, jobid)
+    def __init__(self, url, interval, jobid=None, email=None):
+        Job.__init__(self, interval, jobid=jobid, email=email)
         self.url = url
         self.params = self.url
-        self.differ = difflib.Differ()
         self.html = ""
         self.emailClient = util.EmailClient()
-        self.userid = None # TODO
-
-    def diff(self, oldHtml, newHtml):
-        # result = self.differ.compare(oldHtml.splitlines(), newHtml.splitlines())
-        result = difflib.context_diff(oldHtml.splitlines(), newHtml.splitlines())
-        return '\n'.join(result)
-
-    def run(self):
-        # url = 'http://localhost:8080/'
-        # url = 'https://finance.yahoo.com/quote/QQQ/history?p=QQQ'
-        headers = {
+        self.headers = {
             'Referer': 'https://www.google.com',
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
             'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7'
         }
-        req = urllib.request.Request(self.url, data=None, headers=headers)
+
+    def diff(self, oldHtml, newHtml):
+        result = difflib.context_diff(oldHtml.splitlines(), newHtml.splitlines())
+        return '\n'.join(result)
+
+    def run(self):
+        self.logger.info("fetching {}".format(self.url))
+        # TODO: handle exception below ?
+        req = urllib.request.Request(self.url, data=None, headers=self.headers)
+        # self.logger.info("req created")
         with urllib.request.urlopen(req) as response:
-            # response = urllib.request.urlopen(req)
+            # self.logger.info("fetch done")
             html = response.read().decode()
+            # self.logger.info("decode done: ".format(html))
+            if self.html is None or len(self.html) < 1:
+                self.logger.info("first time fetch, skip comparison")
+                self.html = html
+                return
             diff = self.diff(self.html, html)
             if len(diff) > 0:
                 self.logger.debug("change found:\n" + diff)
-                self.emailClient.send(self.userid, 'updated ' + self.url, diff)
+                self.emailClient.send(self.email, 'updated ' + self.url, diff)
             else:
                 self.logger.info("Nothing change")
             self.html = html
