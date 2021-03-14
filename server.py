@@ -61,7 +61,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             if idxEnd < 0:
                 idxEnd = len(path)
             logging.info('idxStart: {}, idxEnd: {}'.format(idxStart, idxEnd))
-            email = path[idxStart:idxEnd]
+            email = urllib.parse.unquote(path[idxStart:idxEnd])
             response = self.queryJob(email)
         # regular html file, e.g. http://127.0.0.1:8000/index.html
         else:
