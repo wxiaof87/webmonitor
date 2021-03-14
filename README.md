@@ -13,6 +13,10 @@ user@server$ python3 server.py
 open http://127.0.0.1:8000/ in browser
 
 
+# High Level Architecture
+
+![alt text](architecture.png?raw=true)
+
 
 
 # Demo
