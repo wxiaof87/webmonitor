@@ -3,6 +3,10 @@ user@server$ sqlite3 test.db
 
 sqlite> .read tables.sql
 
+# Change Config
+Set sender email account and password in `config.json`.
+Only Yahoo mail is supported as sender account.
+
 # Start Server
 user@server$ python3 server.py
 

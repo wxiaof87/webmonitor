@@ -1,6 +1,9 @@
 import logging
 import smtplib
+import json
+import os
 from email.message import EmailMessage
+
 
 class EmailClient:
     def __init__(self, sender=None, password=None):
@@ -9,7 +12,23 @@ class EmailClient:
         self.password = password
         self.isTest = False
         if sender is None or password is None:
-            self.isTest = True
+            cfg = self.loadConfig()
+            if "sender" in cfg and "password" in cfg:
+                self.sender, self.password = cfg["sender"], cfg["password"]
+            else:
+                self.isTest = True
+
+    def loadConfig(self):
+        cfg = {}
+        configFileName = 'config.json'
+        if not os.path.exists(configFileName):
+            self.logger.warning("config file not found {} ".format(configFileName))
+            return cfg
+
+        with open(configFileName, 'r') as f:
+            cfg = json.load(f)
+            self.logger.info("loaded config: {}".format(cfg))
+        return cfg
 
     def send(self, recipient, subject, content):
         self.logger.info('sending email to {}'.format(recipient))
