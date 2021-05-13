@@ -45,7 +45,7 @@ class EmailClient:
         msg['From'] = self.sender
         msg['To'] = recipient
 
-        s = smtplib.SMTP(host='smtp.mail.yahoo.com', port=587)
+        s = smtplib.SMTP(host='smtp.gmail.com', port=587)
         s.starttls()
         s.login(self.sender, self.password)
         s.send_message(msg)
